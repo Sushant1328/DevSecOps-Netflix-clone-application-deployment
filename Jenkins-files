@@ -1,0 +1,44 @@
+pipeline{
+    agent any
+    tools{
+        jdk 'JDK'
+        nodejs 'node23'
+    }
+    stages {
+        stage('clean workspace'){
+            steps{
+                cleanWs()
+            }
+        }
+        stage('Checkout from Git'){
+            steps{
+                git branch: 'master', url: 'https://github.com/Sushant1328/DevSecOps-Netflix-clone-application-deployment.git'
+            }
+        }
+        stage('Install Dependencies') {
+            steps {
+                sh "npm install"
+            }
+        }
+        stage("Docker Build & Push"){
+            steps{
+                script{
+                   withDockerRegistry(credentialsId: 'docker', toolName: 'docker'){   
+                       sh "docker build --build-arg TMDB_V3_API_KEY=9395a13bcdd7485472700f2d69aa1142 -t sushant132001/netflix ."
+                       sh "docker push sushant132001/netflix "
+                    }
+                }
+            }
+        }
+         stage("TRIVY"){
+            steps{
+                sh "trivy image sushant132001/netflix" 
+            }
+        }
+        stage('Deploy to container'){
+            steps{
+                sh 'docker run -d -p 80:80 sushant132001/netflix'
+            }
+        }
+    }
+}
